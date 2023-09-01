@@ -2,71 +2,59 @@
 // username - shrishti0301
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require("cors");
-const multer = require("multer");
-const bodyParser = require("body-parser");
+const cors = require('cors');
+const multer = require('multer');
+const bodyParser = require('body-parser');
 const app = express();
-const PORT  = process.env.PORT || 5000;
+app.use(express.json());
 const fs = require('fs');
-const ImageModel = require("./models/ImageModel");
-app.use(bodyParser.json());
-app.use(cors());
+const uploadMiddleware = multer({ dest: 'uploads/' });
+app.use('/uploads', express.static(__dirname + '/uploads'));
+const PORT = 5000;
 
-var corsOptions = {
-    origin: "http://localhost:3000",
-	optionsSuccessStatus: 200,
-}
+app.use(cors({ credentials: true, origin: 'http://localhost:3000' }));
+
+// var corsOptions = {
+//   origin: 'http://localhost:3000/',
+//   optionsSuccessStatus: 200,
+// };
 
 mongoose.connect(
-	"mongodb+srv://shrishti0301:ZpnMrGA5uyspLnnn@cluster0.ad1gnwm.mongodb.net/?retryWrites=true&w=majority",
-	{
-		useNewUrlParser: true,
-		useUnifiedTopology: true,
-	}
+  'mongodb+srv://shrishti0301:ZpnMrGA5uyspLnnn@cluster0.ad1gnwm.mongodb.net/?retryWrites=true&w=majority',
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
 );
 const connection = mongoose.connection;
-connection.once("open", () => {
-	console.log("Connected to MongoDB");
+connection.once('open', () => {
+  console.log('Connected to MongoDB');
 });
 
+// app.post('/upload', (req, res) => {
+//   upload(req, res, (err) => {
+//     if (err) {
+//       console.log(err);
+//     } else {
+//       const newImage = new ImageModel({
+//         name: req.body.name,
+//         image: {
+//           data: fs.readFileSync('uploads/' + req.file.filename),
+//           contentType: 'image/png',
+//         },
+//       });
+//       newImage
+//         .save()
+//         .then(() => res.send('successfully uploaded'))
+//         .catch((err) => console.log(err));
+//     }
+//   });
+// });
 
-const Storage = multer.diskStorage({
-    destination:(req,file,cb)=>{
-        cb(null,'uploads')
-    },
-    filename:(req,file,cb)=>{
-        cb(null,file.originalname);
-    }
-})
-
-const upload = multer({
-    storage:Storage,
-}).single("testImage")
-
-
-app.post('/upload', (req,res) =>{
-    upload(req,res,(err) =>{
-        if(err){
-            console.log(err);
-        }else{
-            const newImage  = new ImageModel({
-                name:req.body.name,
-                image:{
-                    data:fs.readFileSync("uploads/" + req.file.filename),
-                    contentType:"image/png",
-                },
-            });
-            newImage.save().then(()=>res.send('successfully uploaded')).catch((err)=> console.log(err));
-        }
-    })
-})
-
-
-app.get('/', async(req,res) =>{
-    const allData= await ImageModel.find();
-    res.json(allData);
-})
-
+// app.get('/', async (req, res) => {
+//   const allData = await ImageModel.find();
+//   res.json(allData);
+// });
 
 // const userSchema = new mongoose.Schema({
 // 	name: { type: String, required: true },
@@ -76,6 +64,28 @@ app.get('/', async(req,res) =>{
 // });
 // const User = mongoose.model("User", userSchema);
 
-app.listen(PORT, () => {
-	console.log(`Server is running on ${PORT}`);
+//upload code
+
+//Multiple files
+// app.post('/upload/multiple', uploadStorage.array('file', 10), (req, res) => {
+//   console.log(req);
+//   return res.send('Multiple files');
+// });
+app.post('/post', uploadMiddleware.single('file'), async (req, res) => {
+  const { originalname, path } = req.file;
+
+  const parts = originalname.split('.');
+  const ext = parts[parts.length - 1];
+  const newPath = path + '.' + ext;
+  fs.renameSync(path, newPath);
+  res.json('ok');
+});
+app.get('/post/:id', (req, res) => {
+  const { id } = req.params;
+
+  const postDoc = `${id}`;
+  res.json(postDoc);
+});
+app.listen(4000, () => {
+  console.log(`Server is running on 4000`);
 });
